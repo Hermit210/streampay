@@ -324,9 +324,13 @@ exact numbers): [`contract/deployment/testnet.md`](contract/deployment/testnet.m
 
 <img src="docs/screenshots/homepage-desktop.png" alt="StreamPay desktop homepage" width="720" />
 
-_[CI pipeline green checks — see [Actions](https://github.com/Hermit210/streampay/actions), also live via the badge at the top of this README]_
+**CI pipeline, both jobs green** (live at [Actions](https://github.com/Hermit210/streampay/actions), also via the badge at the top of this README):
 
-_[Test output, 40 passing frontend tests + 9 passing contract tests — pending]_
+<img src="docs/screenshots/ci-green.png" alt="StreamPay CI run, both jobs green" width="720" />
+
+**Test output** (9 contract tests, 40 frontend tests, all real captured output):
+
+<img src="docs/screenshots/test-output.png" alt="9 contract tests and 40 frontend tests passing" width="640" />
 
 ## Requirements checklist
 
