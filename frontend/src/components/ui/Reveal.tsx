@@ -37,10 +37,19 @@ export function RevealGroup({ children, className }: PropsWithChildren<{ classNa
   );
 }
 
-export function RevealItem({ children, className }: PropsWithChildren<{ className?: string }>) {
+export function RevealItem({
+  children,
+  className,
+  interactive = false,
+}: PropsWithChildren<{ className?: string; interactive?: boolean }>) {
   const { item } = useRevealVariants();
+  const prefersReducedMotion = useReducedMotion();
+  const hoverProps =
+    interactive && !prefersReducedMotion
+      ? { whileHover: { y: -3, scale: 1.01 }, whileTap: { scale: 0.99 } }
+      : {};
   return (
-    <motion.div className={className} variants={item}>
+    <motion.div className={className} variants={item} {...hoverProps}>
       {children}
     </motion.div>
   );
