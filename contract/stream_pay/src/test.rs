@@ -142,3 +142,51 @@ fn zero_duration_is_rejected() {
     let result = client.try_create_stream(&sender, &recipient, &token_id, &1_000i128, &0u64);
     assert!(result.is_err());
 }
+
+#[test]
+fn recipient_can_also_cancel() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let sender = Address::generate(&env);
+    let recipient = Address::generate(&env);
+
+    let token_id = create_token_and_mint(&env, &admin, &sender, 1_000);
+    let token_client = token::Client::new(&env, &token_id);
+
+    let contract_id = env.register(StreamPayContract, ());
+    let client = StreamPayContractClient::new(&env, &contract_id);
+
+    let stream_id = client.create_stream(&sender, &recipient, &token_id, &1_000i128, &1_000u64);
+    env.ledger().with_mut(|l| l.timestamp += 400);
+
+    // Cancellation isn't only the sender's call to make -- the recipient
+    // can end the stream early too (e.g. to settle up sooner).
+    client.cancel(&stream_id, &recipient);
+
+    assert_eq!(token_client.balance(&recipient), 400);
+    assert_eq!(token_client.balance(&sender), 600);
+    assert!(client.get_stream(&stream_id).canceled);
+}
+
+#[test]
+fn stranger_cannot_cancel() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let sender = Address::generate(&env);
+    let recipient = Address::generate(&env);
+    let stranger = Address::generate(&env);
+
+    let token_id = create_token_and_mint(&env, &admin, &sender, 1_000);
+
+    let contract_id = env.register(StreamPayContract, ());
+    let client = StreamPayContractClient::new(&env, &contract_id);
+
+    let stream_id = client.create_stream(&sender, &recipient, &token_id, &1_000i128, &1_000u64);
+
+    let result = client.try_cancel(&stream_id, &stranger);
+    assert!(result.is_err());
+}
