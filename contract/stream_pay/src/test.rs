@@ -222,3 +222,28 @@ fn withdraw_full_deposit_after_stream_completes() {
     let result = client.try_withdraw(&stream_id, &recipient, &1i128);
     assert!(result.is_err());
 }
+
+#[test]
+fn get_recent_streams_orders_most_recent_first() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let sender = Address::generate(&env);
+    let recipient = Address::generate(&env);
+
+    let token_id = create_token_and_mint(&env, &admin, &sender, 3_000);
+
+    let contract_id = env.register(StreamPayContract, ());
+    let client = StreamPayContractClient::new(&env, &contract_id);
+
+    let id0 = client.create_stream(&sender, &recipient, &token_id, &500i128, &100u64);
+    let id1 = client.create_stream(&sender, &recipient, &token_id, &500i128, &100u64);
+    let id2 = client.create_stream(&sender, &recipient, &token_id, &500i128, &100u64);
+
+    let recent = client.get_recent_streams();
+    assert_eq!(recent.len(), 3);
+    assert_eq!(recent.get(0).unwrap(), id2);
+    assert_eq!(recent.get(1).unwrap(), id1);
+    assert_eq!(recent.get(2).unwrap(), id0);
+}
