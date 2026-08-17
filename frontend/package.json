@@ -21,7 +21,8 @@
     "@stellar/stellar-sdk": "^16.2.0",
     "motion": "^13.1.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",
