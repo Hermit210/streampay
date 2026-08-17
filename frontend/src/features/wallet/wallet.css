@@ -12,7 +12,7 @@
 }
 
 .wallet-address {
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   background: var(--surface-2);
   border: 1px solid var(--border);

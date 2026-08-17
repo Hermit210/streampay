@@ -61,7 +61,7 @@
   color: var(--text-muted);
 }
 .party-value {
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   overflow-wrap: anywhere;
 }
@@ -90,6 +90,8 @@
   color: var(--text-muted);
 }
 .live-balance-value {
+  font-family: var(--font-mono);
+  color: var(--accent);
   font-size: 2.1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -176,7 +178,7 @@
 }
 .activity-link {
   margin-left: auto;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
 }
 
