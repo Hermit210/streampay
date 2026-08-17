@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'motion/react';
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber';
 import { Spinner } from '../../components/ui/Spinner';
@@ -29,9 +30,14 @@ export function Hero() {
           stream; the recipient's balance grows every second, withdrawable
           anytime; either side can cancel for an instantly fair split.
         </p>
-        <a className="hero-cta" href="#live-demo">
-          Try it live ↓
-        </a>
+        <div className="hero-actions">
+          <Link className="hero-cta" to="/app">
+            Launch app
+          </Link>
+          <Link className="hero-cta-secondary" to="/how-it-works">
+            See how it works
+          </Link>
+        </div>
       </motion.div>
 
       <motion.a
