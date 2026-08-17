@@ -190,3 +190,35 @@ fn stranger_cannot_cancel() {
     let result = client.try_cancel(&stream_id, &stranger);
     assert!(result.is_err());
 }
+
+#[test]
+fn withdraw_full_deposit_after_stream_completes() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let sender = Address::generate(&env);
+    let recipient = Address::generate(&env);
+
+    let token_id = create_token_and_mint(&env, &admin, &sender, 1_000);
+    let token_client = token::Client::new(&env, &token_id);
+
+    let contract_id = env.register(StreamPayContract, ());
+    let client = StreamPayContractClient::new(&env, &contract_id);
+
+    let stream_id = client.create_stream(&sender, &recipient, &token_id, &1_000i128, &1_000u64);
+
+    // Well past stop_time -- the full deposit should be accrued and
+    // withdrawable in one shot.
+    env.ledger().with_mut(|l| l.timestamp += 5_000);
+    assert_eq!(client.balance_of(&stream_id), 1_000);
+
+    client.withdraw(&stream_id, &recipient, &1_000i128);
+    assert_eq!(token_client.balance(&recipient), 1_000);
+    assert_eq!(token_client.balance(&contract_id), 0);
+    assert_eq!(client.balance_of(&stream_id), 0);
+
+    // Nothing left -- a further withdrawal must fail, not silently no-op.
+    let result = client.try_withdraw(&stream_id, &recipient, &1i128);
+    assert!(result.is_err());
+}
