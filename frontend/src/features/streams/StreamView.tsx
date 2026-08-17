@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Spinner } from '../../components/ui/Spinner';
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber';
+import { TxFeedback } from '../../components/ui/TxFeedback';
 import { withdraw, cancelStream } from '../../services/stellar/streams';
 import { stroopsToXlm, stroopsToXlmNumber, xlmToStroops } from '../../services/stellar/amount';
 import { describeError } from '../../services/stellar/errors';
@@ -25,6 +26,7 @@ export function StreamView({ streamId, address }: { streamId: bigint; address: s
   const [withdrawing, setWithdrawing] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [activityRefreshToken, setActivityRefreshToken] = useState(0);
+  const lastActionHashRef = useRef<string | null>(null);
 
   if (live.loading && !live.stream) {
     return (
@@ -77,7 +79,8 @@ export function StreamView({ streamId, address }: { streamId: bigint; address: s
         recipient: address,
         amountStroops,
       });
-      setActionHash(outcome.hash ?? null);
+      lastActionHashRef.current = outcome.hash ?? null;
+      setActionHash(lastActionHashRef.current);
       setWithdrawAmount('');
       live.refetch();
       setActivityRefreshToken((t) => t + 1);
@@ -95,7 +98,8 @@ export function StreamView({ streamId, address }: { streamId: bigint; address: s
     setCanceling(true);
     try {
       const outcome = await cancelStream({ address, streamId, caller: address });
-      setActionHash(outcome.hash ?? null);
+      lastActionHashRef.current = outcome.hash ?? null;
+      setActionHash(lastActionHashRef.current);
       live.refetch();
       setActivityRefreshToken((t) => t + 1);
     } catch (err) {
@@ -175,14 +179,14 @@ export function StreamView({ streamId, address }: { streamId: bigint; address: s
       )}
 
       <ErrorBanner message={actionError} />
-      {actionHash && (
-        <div className="create-success" role="status">
-          <p>Transaction confirmed.</p>
-          <a href={explorerTxUrl(actionHash)} target="_blank" rel="noreferrer">
+      <TxFeedback show={actionHash !== null}>
+        <p>Transaction confirmed.</p>
+        {lastActionHashRef.current && (
+          <a href={explorerTxUrl(lastActionHashRef.current)} target="_blank" rel="noreferrer">
             View transaction ↗
           </a>
-        </div>
-      )}
+        )}
+      </TxFeedback>
 
       <div className="activity-section">
         <span className="party-label">Recent activity</span>

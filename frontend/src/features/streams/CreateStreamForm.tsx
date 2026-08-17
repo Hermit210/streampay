@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
+import { TxFeedback } from '../../components/ui/TxFeedback';
 import { createStream } from '../../services/stellar/streams';
 import { xlmToStroops } from '../../services/stellar/amount';
 import { describeError } from '../../services/stellar/errors';
@@ -36,6 +37,10 @@ export function CreateStreamForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<CreatedStream | null>(null);
+  // TxFeedback plays an exit animation after `created` clears to null on the
+  // next submit -- render from the last known value during that fade so the
+  // panel doesn't flash to empty content while animating out.
+  const lastCreatedRef = useRef<CreatedStream | null>(null);
 
   const durationSeconds = String(
     Number(durationValue || 0) * DURATION_UNITS[durationUnitIndex].seconds,
@@ -69,7 +74,8 @@ export function CreateStreamForm({
         depositStroops: xlmToStroops(deposit),
         durationSeconds: BigInt(durationSeconds),
       });
-      setCreated({ id: outcome.value, hash: outcome.hash });
+      lastCreatedRef.current = { id: outcome.value, hash: outcome.hash };
+      setCreated(lastCreatedRef.current);
       setRecipient('');
       setDeposit('');
       onCreated?.(outcome.value);
@@ -79,6 +85,8 @@ export function CreateStreamForm({
       setSubmitting(false);
     }
   }
+
+  const last = lastCreatedRef.current;
 
   return (
     <Card title="Create a stream">
@@ -142,18 +150,20 @@ export function CreateStreamForm({
 
         <ErrorBanner message={submitError} />
 
-        {created && (
-          <div className="create-success" role="status">
-            <p>
-              Stream <strong>#{created.id.toString()}</strong> created.
-            </p>
-            {created.hash && (
-              <a href={explorerTxUrl(created.hash)} target="_blank" rel="noreferrer">
-                View transaction ↗
-              </a>
-            )}
-          </div>
-        )}
+        <TxFeedback show={created !== null}>
+          {last && (
+            <>
+              <p>
+                Stream <strong>#{last.id.toString()}</strong> created.
+              </p>
+              {last.hash && (
+                <a href={explorerTxUrl(last.hash)} target="_blank" rel="noreferrer">
+                  View transaction ↗
+                </a>
+              )}
+            </>
+          )}
+        </TxFeedback>
       </form>
     </Card>
   );
