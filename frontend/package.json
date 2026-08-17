@@ -16,8 +16,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@formkit/auto-animate": "^0.10.0",
     "@stellar/freighter-api": "^6.0.1",
     "@stellar/stellar-sdk": "^16.2.0",
+    "motion": "^13.1.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
