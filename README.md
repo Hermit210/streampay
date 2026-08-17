@@ -5,6 +5,21 @@
 Real-time streaming payments on Stellar Soroban — Orange Belt (Level 3) of
 [Stellar Journey to Mastery](https://www.risein.com/programs/stellar-journey-to-mastery-monthly-builder-challenges).
 
+## Contents
+
+- [What this is](#what-this-is)
+- [How this compares to earlier belts](#how-this-compares-to-earlier-belts)
+- [Where this fits (use cases)](#where-this-fits-use-cases)
+- [System architecture](#system-architecture)
+- [How a stream flows, end to end](#how-a-stream-flows-end-to-end)
+- [Accrual math, visually](#accrual-math-visually)
+- [Contract](#contract)
+- [Frontend](#frontend)
+- [Setup](#setup)
+- [Testnet deployment](#testnet-deployment)
+- [Screenshots](#screenshots)
+- [Requirements checklist](#requirements-checklist)
+
 ## What this is
 
 A sender locks XLM into a **stream** addressed to a recipient over a fixed
@@ -19,29 +34,139 @@ or [Superfluid](https://www.superfluid.finance/) on Ethereum — payroll,
 subscriptions, vesting — implemented for the first time on Stellar in this
 submission.
 
-### How this differs from earlier belts
+## How this compares to earlier belts
 
-- **White Belt** (`splitstellar-white-belt`): a single one-shot payment.
-  No time dimension at all.
-- **Yellow Belt** (`stellar-yellow-belt` / SplitTracker): tracked group
-  expense splits, but never moved real tokens — it was bookkeeping, not
-  payments.
-- **Orange Belt (this project)**: moves *real* XLM, continuously, over
-  time, via an inter-contract call into Stellar's XLM Stellar Asset
-  Contract (SAC). The withdrawable amount is a live function of elapsed
-  time, not a static ledger entry.
+| Belt | Repo | Contract pattern | Moves real tokens? | Time dimension | Category |
+|---|---|---|---|---|---|
+| White (L1) | `splitstellar-white-belt` | Single direct payment | ✅ | None — instant | One-shot payment |
+| Yellow (L2) | `stellar-yellow-belt` (SplitTracker) | Group-split ledger | ❌ bookkeeping only | None | Expense splitting |
+| **Orange (L3) — this repo** | `streampay` | Continuous streaming via inter-contract SAC calls | ✅ | **Continuous, linear accrual** | Payroll / subscriptions / vesting |
 
-## Architecture
+White Belt moved money once. Yellow Belt tracked who-owes-who without
+moving anything. StreamPay is the first of the three to make **time**
+itself part of the payment: the withdrawable amount is a live function of
+`now`, computed the same way on-chain and in the UI.
+
+## Where this fits (use cases)
+
+| Use case | How StreamPay fits |
+|---|---|
+| **Payroll** | An employer streams a salary continuously instead of a lump sum on payday; an employee who leaves mid-month has already been paid for the days worked. |
+| **Subscriptions** | A subscriber streams payment for as long as they keep using a service, and can cancel anytime — no metering or manual refund logic needed. |
+| **Vesting** | Investor or founder tokens unlock linearly over a duration, with no cliff logic beyond what `duration_seconds` already encodes. |
+| **Contractor milestones** | A client streams payment for the agreed engagement length; canceling early automatically refunds the unearned remainder. |
+
+## System architecture
+
+```mermaid
+flowchart LR
+    subgraph Browser["Browser"]
+        UI["React + TypeScript UI\nfeatures/streams · features/wallet"]
+        FW["Freighter Wallet\nsigns transactions"]
+    end
+
+    subgraph Testnet["Stellar Testnet"]
+        RPC["Soroban RPC"]
+        SP["StreamPay Contract"]
+        SAC["XLM Stellar Asset Contract"]
+    end
+
+    UI -- "build tx" --> FW
+    FW -- "signed tx" --> RPC
+    UI -- "reads: balance_of / get_stream / getEvents" --> RPC
+    RPC --> SP
+    SP -- "inter-contract call: transfer()" --> SAC
+    SP -- "emits events" --> RPC
+
+    subgraph CICD["Ship path"]
+        GH["GitHub Actions CI"]
+        VC["Vercel"]
+    end
+
+    UI -. deployed via .-> VC
+    SP -. tested and built by .-> GH
+```
+
+Two things happen over Soroban RPC: the app **calls** the contract
+(`create_stream`, `withdraw`, `cancel`, all signed by Freighter) and it
+**reads** from the contract (`balance_of`, `get_stream`, and real Soroban
+events via `getEvents`) — the read path never needs a wallet connected.
+
+## How a stream flows, end to end
+
+```mermaid
+sequenceDiagram
+    actor Sender
+    actor Recipient
+    participant SP as StreamPay Contract
+    participant SAC as XLM SAC
+
+    Sender->>SP: create_stream(recipient, token, deposit, duration)
+    SP->>SAC: transfer(sender → contract, deposit)
+    SP-->>Sender: stream_id
+    SP--)Recipient: event "stream created"
+
+    Note over SP: balance accrues linearly, per second<br/>accrued = deposit × elapsed / duration
+
+    Recipient->>SP: balance_of(stream_id)
+    SP-->>Recipient: accrued − withdrawn
+
+    Recipient->>SP: withdraw(stream_id, amount)
+    SP->>SAC: transfer(contract → recipient, amount)
+    SP--)Recipient: event "stream withdrawn"
+
+    opt either party cancels early
+        Sender->>SP: cancel(stream_id)
+        SP->>SAC: transfer(contract → recipient, remaining accrued)
+        SP->>SAC: transfer(contract → sender, refund)
+        SP--)Sender: event "stream canceled"
+    end
+```
+
+Every arrow into the SAC (`transfer`) is a real **inter-contract call** —
+the contract never keeps its own ledger of XLM balances, it always asks
+the token contract to move funds, the same way any ERC-20-style `transfer`
+would work on another chain.
+
+## Accrual math, visually
+
+The formula is deliberately simple integer math — `deposit × elapsed /
+duration`, floor-divided, no floats — so the contract and the frontend can
+compute the identical number independently.
 
 ```
-contract/stream_pay/     Soroban smart contract (Rust)
-frontend/                React + TypeScript + Vite dApp
-scripts/                 One-command deployment script
-.github/workflows/       CI (contract + frontend)
-package.json             Root convenience scripts (npm run dev/test/build, etc.)
+0s ───────────────●──────────────────────────────────────────── 60s
+                elapsed                                  fully vested
+   deposit locked                                    100% withdrawable
+        │                                                     │
+        └──────────── withdrawable balance ticks up here, once per second ───────────┘
 ```
 
-### Contract
+Real numbers from the testnet run documented below — a 10 XLM stream over
+60 seconds:
+
+| Elapsed | `accrued()` | Withdrawable | What happened |
+|---|---|---|---|
+| 0s | 0.0000000 XLM | 0.0000000 XLM | `create_stream` confirmed |
+| 15s | 2.5000000 XLM | 2.5000000 XLM | — |
+| 30s | 5.0000000 XLM | 5.0000000 XLM | — |
+| **41s** | **6.8333333 XLM** | **6.8333333 XLM** | `balance_of` checked (real tx) |
+| 41s + 1 block | 6.8333333 XLM | 1.8333333 XLM | `withdraw(5 XLM)` confirmed (real tx) |
+| 60s+ | 10.0000000 XLM | 5.1666667 XLM | stream fully vested |
+
+Same shape, decomposed:
+
+```mermaid
+flowchart TD
+    A["Read: env.ledger().timestamp()"] --> B{"now &le; start_time?"}
+    B -- yes --> Z0["accrued = 0"]
+    B -- no --> C{"now &ge; stop_time\nor canceled?"}
+    C -- yes --> Z1["accrued = deposit\n(fully vested)"]
+    C -- no --> D["elapsed = now − start_time\ntotal = stop_time − start_time"]
+    D --> E["accrued = deposit × elapsed / total\n(integer floor division)"]
+```
+
+## Contract
 
 - `create_stream(sender, recipient, token, deposit, duration_seconds)` —
   pulls `deposit` from `sender` into the contract via an **inter-contract
@@ -67,7 +192,7 @@ this pattern for the same reason two unrelated Ethereum projects would
 both call `IERC20.transfer` — it's the only correct way to move tokens on
 Soroban, not something copied between the two.
 
-### Frontend
+## Frontend
 
 ```
 frontend/src/
@@ -83,6 +208,19 @@ frontend/src/
   components/ui/        shared primitives (Button, Card, StatusBadge,
                          Spinner, ErrorBanner, ErrorBoundary)
   App.tsx                thin composition root
+```
+
+```mermaid
+flowchart TD
+    App["App.tsx\n(composition root)"] --> Wallet["features/wallet"]
+    App --> Streams["features/streams"]
+    Wallet --> UIKit["components/ui"]
+    Streams --> UIKit
+    Wallet --> SvcStellar["services/stellar"]
+    Streams --> SvcStellar
+    Streams --> SvcEvents["services/events"]
+    SvcStellar --> Net["Soroban RPC + Freighter"]
+    SvcEvents --> Net
 ```
 
 The **live-ticking balance** is the core visual proof that streaming
@@ -162,24 +300,15 @@ _[Test output, 36 passing frontend tests + 9 passing contract tests — pending]
 
 ## Requirements checklist
 
-- [x] Advanced smart contract: inter-contract calls to the XLM SAC
-      (`create_stream`, `withdraw`, `cancel`), Soroban events on every
-      mutation
-- [x] CI/CD pipeline: contract test/build + frontend lint/typecheck/
-      test/build on every push to `main`
-- [x] Documented, scripted deployment: `scripts/deploy-contract.sh`, one
-      command
-- [ ] Mobile responsive frontend (implemented with mobile breakpoints
-      throughout; visual verification at ~390px pending)
-- [x] Error handling & loading states throughout (wallet, form
-      validation, contract calls, plus a root ErrorBoundary for uncaught
-      render errors)
-- [x] Tests: 9 contract unit tests (Rust/soroban-sdk testutils) + 36
-      frontend tests (Vitest/RTL) covering success and failure paths
-- [x] Production-ready architecture: services/features/components
-      separation, thin `App.tsx`
-- [ ] Documentation + 1-2 minute demo video (README done; video pending
-      recording)
-- [ ] Live demo link (Vercel) — pending deploy
-- [ ] Transaction hash for a contract interaction — done above; screenshot
-      evidence pending
+| Requirement | Status | Notes |
+|---|---|---|
+| Advanced smart contract | ✅ | Inter-contract calls to the XLM SAC (`create_stream`, `withdraw`, `cancel`), Soroban events on every mutation |
+| CI/CD pipeline | ✅ | Contract test/build + frontend lint/typecheck/test/build on every push to `main` — [green run](https://github.com/Hermit210/streampay/actions) |
+| Documented, scripted deployment | ✅ | `scripts/deploy-contract.sh`, one command |
+| Mobile responsive frontend | 🟡 | Implemented with mobile breakpoints + overflow hardening throughout; visual screenshot at ~390px pending |
+| Error handling & loading states | ✅ | Wallet, form validation, contract calls, plus a root `ErrorBoundary` for uncaught render errors |
+| Tests | ✅ | 9 contract unit tests (Rust/soroban-sdk testutils) + 36 frontend tests (Vitest/RTL), success and failure paths |
+| Production-ready architecture | ✅ | services/features/components separation, thin `App.tsx` |
+| Documentation + demo video | 🟡 | README done; video pending recording |
+| Live demo link (Vercel) | ⬜ | Pending deploy |
+| Transaction hash for a contract interaction | ✅ | See [Testnet deployment](#testnet-deployment); screenshot evidence pending |
