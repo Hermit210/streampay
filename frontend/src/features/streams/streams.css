@@ -1,0 +1,38 @@
+.stream-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.duration-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0.75rem;
+}
+
+.create-success {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+.create-success p {
+  margin: 0;
+}
+.create-success a {
+  color: var(--success);
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .duration-row {
+    grid-template-columns: 1fr;
+  }
+}

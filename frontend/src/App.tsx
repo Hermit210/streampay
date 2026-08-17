@@ -1,5 +1,6 @@
 import { useWallet } from './features/wallet/useWallet';
 import { WalletConnect } from './features/wallet/WalletConnect';
+import { CreateStreamForm } from './features/streams/CreateStreamForm';
 import './App.css';
 
 function App() {
@@ -14,6 +15,8 @@ function App() {
         </div>
         <WalletConnect {...wallet} />
       </header>
+
+      <CreateStreamForm address={wallet.address} />
     </div>
   );
 }
