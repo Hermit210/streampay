@@ -20,3 +20,9 @@ export const EXPLORER_BASE_URL = requireEnv('VITE_EXPLORER_BASE_URL');
 export function explorerTxUrl(hash: string): string {
   return `${EXPLORER_BASE_URL}/tx/${hash}`;
 }
+
+// A real, long-running stream on testnet (100 XLM over 30 days, created
+// 2026-08-18: tx b00781879368ac0439ce9f7523245c49b8beb78288bb2da7b76c7a4807b9eba6)
+// used to illustrate the homepage with genuine live numbers instead of
+// invented placeholder ones.
+export const DEMO_STREAM_ID = 2n;
