@@ -1,0 +1,16 @@
+{
+  "name": "streampay",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Real-time streaming payments on Stellar Soroban",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "test": "npm --prefix frontend test",
+    "test:contract": "cd contract && cargo test",
+    "test:all": "npm run test:contract && npm test",
+    "deploy:contract": "./scripts/deploy-contract.sh"
+  }
+}
