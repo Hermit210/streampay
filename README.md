@@ -34,6 +34,20 @@ or [Superfluid](https://www.superfluid.finance/) on Ethereum — payroll,
 subscriptions, vesting — implemented for the first time on Stellar in this
 submission.
 
+**How this differs from a normal payment, or from a task-escrow model.**
+A normal one-time payment is instant and all-or-nothing — there's no way
+to represent "partially earned." A task-escrow model (like a friend's
+Orange Belt submission, Proofdrop — a paid-task escrow with proof-of-work
+review) solves a *different* problem: it holds funds until a discrete,
+manually-approved milestone is reached, then releases the full amount in
+one shot. StreamPay's differentiator is **continuous linear accrual**:
+there's no milestone to approve and no manual review step — the
+withdrawable balance is a deterministic function of elapsed time,
+computed identically on-chain and in the UI, growing every single second
+rather than jumping in discrete steps. That's why cancellation is trivial
+here (split by elapsed time, no dispute possible) where it would require
+a judgment call in an escrow/approval model.
+
 ## How this compares to earlier belts
 
 | Belt | Repo | Contract pattern | Moves real tokens? | Time dimension | Category |
@@ -316,33 +330,56 @@ exact numbers): [`contract/deployment/testnet.md`](contract/deployment/testnet.m
 
 ## Screenshots
 
-**Mobile UI at 390px** (real headless-browser capture, live testnet data, zero horizontal overflow):
+All real headless-browser captures against the live dev server (live
+testnet data, real routing) — none are mockups.
 
-<img src="docs/screenshots/homepage-mobile-390px.png" alt="StreamPay mobile homepage at 390px" width="360" />
+### Mobile, 390px (all three routes, zero horizontal overflow)
 
-**Desktop homepage** (1280px):
+<img src="docs/screenshots/homepage-mobile-390px.png" alt="StreamPay home page, mobile 390px" width="300" />
+<img src="docs/screenshots/how-it-works-mobile-390px.png" alt="How it works page, mobile 390px" width="300" />
+<img src="docs/screenshots/app-mobile-390px.png" alt="App page, mobile 390px" width="300" />
 
-<img src="docs/screenshots/homepage-desktop.png" alt="StreamPay desktop homepage" width="720" />
+### Desktop
 
-**CI pipeline, both jobs green** (live at [Actions](https://github.com/Hermit210/streampay/actions), also via the badge at the top of this README):
+**Home** — hero with a live-ticking real testnet stat, signature flow-line visual, condensed walkthrough:
+
+<img src="docs/screenshots/homepage-desktop.png" alt="StreamPay desktop home page" width="720" />
+
+**How it works** — full 4-step walkthrough, feature highlights, FAQ:
+
+<img src="docs/screenshots/how-it-works-desktop.png" alt="StreamPay desktop how-it-works page" width="720" />
+
+**App** — create/lookup form plus a real loaded stream showing the live-ticking balance, progress bar, and on-chain activity feed (wallet not connected in this capture — Freighter isn't installable in a headless capture environment, so this shows the honest disconnected-state UI, not a staged connected one):
+
+<img src="docs/screenshots/app-desktop-live-stream.png" alt="StreamPay app page with a live loaded stream" width="720" />
+
+### CI pipeline, both jobs green
+
+Live at [Actions](https://github.com/Hermit210/streampay/actions), also via the badge at the top of this README:
 
 <img src="docs/screenshots/ci-green.png" alt="StreamPay CI run, both jobs green" width="720" />
 
-**Test output** (9 contract tests, 40 frontend tests, all real captured output):
+### Test output (9 contract tests + 43 frontend tests, all real captured output)
 
-<img src="docs/screenshots/test-output.png" alt="9 contract tests and 40 frontend tests passing" width="640" />
+<img src="docs/screenshots/test-output.png" alt="9 contract tests and 43 frontend tests passing" width="640" />
 
 ## Requirements checklist
 
+Re-verified against actual current state at the time of writing, not
+assumed from earlier work.
+
 | Requirement | Status | Notes |
 |---|---|---|
-| Advanced smart contract | ✅ | Inter-contract calls to the XLM SAC (`create_stream`, `withdraw`, `cancel`), Soroban events on every mutation |
-| CI/CD pipeline | ✅ | Contract test/build + frontend lint/typecheck/test/build on every push to `main` — [green run](https://github.com/Hermit210/streampay/actions) |
-| Documented, scripted deployment | ✅ | `scripts/deploy-contract.sh`, one command |
-| Mobile responsive frontend | ✅ | Verified at 390px with a real headless-browser capture — see [Screenshots](#screenshots), zero horizontal overflow |
-| Error handling & loading states | ✅ | Wallet, form validation, contract calls, plus a root `ErrorBoundary` for uncaught render errors |
-| Tests | ✅ | 9 contract unit tests (Rust/soroban-sdk testutils) + 40 frontend tests (Vitest/RTL), success and failure paths |
-| Production-ready architecture | ✅ | services/features/components separation, thin `App.tsx` |
-| Documentation + demo video | 🟡 | README done; video pending recording |
+| Inter-contract communication | ✅ | `create_stream`, `withdraw`, and `cancel` all call the XLM SAC's `transfer` via `token::Client` — real inter-contract calls, not internal bookkeeping |
+| Event streaming for real-time updates | ✅ | Contract emits a Soroban event on every mutation; `services/events/streamEvents.ts` reads them via `rpc.Server.getEvents` and renders a live on-chain activity feed |
+| CI/CD pipeline | ✅ | `.github/workflows/ci.yml`: contract test+build, frontend lint/typecheck/test/build, on every push to `main` — [green run](https://github.com/Hermit210/streampay/actions) |
+| Documented, scripted deployment workflow | ✅ | `scripts/deploy-contract.sh testnet deployer` — one command, documented in [Setup](#setup) |
+| Mobile responsive frontend | ✅ | All three routes (`/`, `/how-it-works`, `/app`) verified at 390px with real headless-browser captures, zero horizontal overflow — see [Screenshots](#screenshots) |
+| Error handling & loading states | ✅ | Every RPC/contract call (wallet connect, create, withdraw, cancel, stream load, event poll) has a loading state and a mapped, human-readable error message, plus a root `ErrorBoundary` for uncaught render errors |
+| Contract tests | ✅ | 9 unit tests (Rust/soroban-sdk testutils): create, partial/full withdraw, double-withdraw rejection, cancel by sender and by recipient, stranger-cannot-cancel, non-recipient-cannot-withdraw, zero-duration rejection, recent-streams ordering |
+| Frontend tests | ✅ | 43 tests (Vitest/RTL): accrual math (11, including before/mid/exactly-at-stop/after-stop/canceled), wallet connect errors (5), form validation (8), withdraw guard logic (3), animated number (4), error mapping (5), amount conversion (4), component-level create-stream flow (3) |
+| Production-ready architecture | ✅ | `services/` (RPC, wallet, events) / `features/` (streams, wallet, home) / `components/ui/` (shared primitives) / `pages/` separation, thin composition roots — not one giant `App.tsx` |
+| Documentation | ✅ | This README: architecture, setup, testing, deployment record, honest checklist |
+| Demo video | 🟡 | Pending recording |
 | Live demo link (Vercel) | ⬜ | Pending deploy |
-| Transaction hash for a contract interaction | ✅ | create_stream, withdraw, and cancel all have real confirmed transactions — see [Testnet deployment](#testnet-deployment) |
+| Transaction hash for a contract interaction | ✅ | create_stream, withdraw, and cancel all have real confirmed testnet transactions — see [Testnet deployment](#testnet-deployment) |
