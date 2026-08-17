@@ -23,3 +23,11 @@ export function stroopsToXlm(stroops: bigint | number | string): string {
   const sign = negative ? '-' : '';
   return fracStr ? `${sign}${whole}.${fracStr}` : `${sign}${whole}`;
 }
+
+/** Stroops as a floating-point XLM number, for animation/display only --
+ * never use this for another on-chain amount calculation, where bigint
+ * stroops must stay exact. Safe here because XLM balances shown in this UI
+ * are always far below Number's precision limits. */
+export function stroopsToXlmNumber(stroops: bigint): number {
+  return Number(stroops) / Number(STROOPS_PER_XLM);
+}

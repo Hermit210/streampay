@@ -4,8 +4,9 @@ import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Spinner } from '../../components/ui/Spinner';
+import { AnimatedNumber } from '../../components/ui/AnimatedNumber';
 import { withdraw, cancelStream } from '../../services/stellar/streams';
-import { stroopsToXlm, xlmToStroops } from '../../services/stellar/amount';
+import { stroopsToXlm, stroopsToXlmNumber, xlmToStroops } from '../../services/stellar/amount';
 import { describeError } from '../../services/stellar/errors';
 import { explorerTxUrl } from '../../services/stellar/config';
 import { useLiveStream } from './useLiveStream';
@@ -135,7 +136,9 @@ export function StreamView({ streamId, address }: { streamId: bigint; address: s
         <span className="live-balance-label">
           {isRecipient ? 'Your withdrawable balance' : 'Accrued to recipient'}
         </span>
-        <span className="live-balance-value">{stroopsToXlm(live.availableStroops)} XLM</span>
+        <span className="live-balance-value">
+          <AnimatedNumber value={stroopsToXlmNumber(live.availableStroops)} suffix=" XLM" />
+        </span>
         <span className="live-balance-sub">of {stroopsToXlm(stream.deposit)} XLM total</span>
       </div>
 
