@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
@@ -11,6 +12,7 @@ export function StreamLookup({ onSelect }: { onSelect: (streamId: bigint) => voi
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<bigint[]>([]);
   const [loadingRecent, setLoadingRecent] = useState(true);
+  const [recentListRef] = useAutoAnimate<HTMLDivElement>();
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +60,7 @@ export function StreamLookup({ onSelect }: { onSelect: (streamId: bigint) => voi
       {loadingRecent ? (
         <p className="stream-note">Loading recent streams…</p>
       ) : recent.length > 0 ? (
-        <div className="recent-streams">
+        <div className="recent-streams" ref={recentListRef}>
           {recent.map((id) => (
             <button key={id.toString()} type="button" onClick={() => onSelect(id)}>
               #{id.toString()}

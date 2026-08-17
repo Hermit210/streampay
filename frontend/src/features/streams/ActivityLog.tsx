@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { fetchRecentStreamEvents, type StreamEvent } from '../../services/events/streamEvents';
 import { stroopsToXlm } from '../../services/stellar/amount';
 import { explorerTxUrl } from '../../services/stellar/config';
@@ -23,6 +24,7 @@ export function ActivityLog({ streamId, refreshToken }: { streamId: bigint; refr
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [listRef] = useAutoAnimate<HTMLUListElement>();
 
   useEffect(() => {
     let cancelled = false;
@@ -57,7 +59,7 @@ export function ActivityLog({ streamId, refreshToken }: { streamId: bigint; refr
   if (events.length === 0) return <p className="stream-note">No recent on-chain activity found.</p>;
 
   return (
-    <ul className="activity-log">
+    <ul className="activity-log" ref={listRef}>
       {events.map((event) => (
         <li key={event.id}>
           <span className="activity-kind">{LABELS[event.kind]}</span>
