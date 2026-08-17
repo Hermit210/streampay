@@ -1,0 +1,31 @@
+[package]
+name = "stream_pay"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+soroban-sdk = "22.0.0"
+
+[dev-dependencies]
+soroban-sdk = { version = "22.0.0", features = ["testutils"] }
+# Pin to unify the dependency graph: soroban-env-host 22.1.3 declares
+# ed25519-dalek ">=2.0.0" with no upper bound, so an unpinned resolve picks
+# up ed25519-dalek 3.0.0, which requires rand_core 0.10's CryptoRng trait —
+# but soroban-env-host's own rand_chacha 0.3.1 dependency only provides
+# rand_core 0.6, so the two don't satisfy each other and the build breaks.
+# Pinning here forces the whole graph onto the 2.x line it actually works with.
+ed25519-dalek = "=2.2.0"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
