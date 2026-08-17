@@ -7,6 +7,7 @@ import { DEMO_STREAM_ID, explorerTxUrl } from '../../services/stellar/config';
 import './home.css';
 
 const WITHDRAW_TX_HASH = 'c1401089933bd652a65d6b8915f8db4c88928a99f0a6cfa9e2866e2b0b998a15';
+const CANCEL_TX_HASH = '3df09befea0d46744be77384a3c3a898af87ffec8f291340b3125407d3af0180';
 
 export function HowItWorks() {
   const demo = useLiveStream(DEMO_STREAM_ID);
@@ -70,7 +71,13 @@ export function HowItWorks() {
             Either the sender or recipient can cancel early. The contract
             pays the recipient exactly what has accrued so far and refunds
             the untouched remainder to the sender — both via real
-            inter-contract transfers, in the same transaction.
+            inter-contract transfers, in the same transaction.{' '}
+            <a href={explorerTxUrl(CANCEL_TX_HASH)} target="_blank" rel="noreferrer">
+              A real cancel ↗
+            </a>{' '}
+            on a 20 XLM stream split <strong>2.0611111 XLM</strong> to the
+            recipient and refunded <strong>17.9388889 XLM</strong> to the
+            sender — exact to the stroop.
           </p>
         </RevealItem>
       </RevealGroup>

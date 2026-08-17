@@ -40,6 +40,21 @@ Stellar Testnet (Soroban RPC: https://soroban-testnet.stellar.org)
 4. **get_stream(0)** — final state check.
    - `deposit: 100000000, withdrawn: 50000000, canceled: false` — matches expectations exactly.
 
+## Additional real transactions (frontend homepage + cancel coverage)
+
+5. **create_stream** — stream #2, a long-running (100 XLM / 30 days) stream used as the homepage's live "how it works" example, so the marketing page shows genuine on-chain numbers instead of invented ones.
+   - Tx: https://stellar.expert/explorer/testnet/tx/b00781879368ac0439ce9f7523245c49b8beb78288bb2da7b76c7a4807b9eba6
+   - Stream id: `2`, deposit `1000000000` stroops (100 XLM), duration `2592000`s (30 days).
+
+6. **create_stream** — stream #4 (20 XLM / 3600s), created specifically to demonstrate a real early `cancel`.
+   - Tx: https://stellar.expert/explorer/testnet/tx/a0dae197d407999483aeb9749e3e1c8a0e9927cdab5c3e0a187ac40a782b7619
+
+7. **cancel(4, sender)** — canceled ~341s into the 3600s stream (~9.5% accrued).
+   - **Tx hash**: `3df09befea0d46744be77384a3c3a898af87ffec8f291340b3125407d3af0180`
+   - Stellar Expert: https://stellar.expert/explorer/testnet/tx/3df09befea0d46744be77384a3c3a898af87ffec8f291340b3125407d3af0180
+   - Recipient received `20611111` stroops (2.0611111 XLM); sender was refunded `179388889` stroops (17.9388889 XLM) — sums exactly to the 200000000-stroop (20 XLM) deposit.
+   - Emitted two real `transfer` events on the XLM SAC (contract → recipient, contract → sender) plus a `stream canceled` event on StreamPay.
+
 ## Reproduce
 
 ```bash
