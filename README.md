@@ -1,5 +1,7 @@
 # StreamPay
 
+[![CI](https://github.com/Hermit210/streampay/actions/workflows/ci.yml/badge.svg)](https://github.com/Hermit210/streampay/actions/workflows/ci.yml)
+
 Real-time streaming payments on Stellar Soroban — Orange Belt (Level 3) of
 [Stellar Journey to Mastery](https://www.risein.com/programs/stellar-journey-to-mastery-monthly-builder-challenges).
 
@@ -36,6 +38,7 @@ contract/stream_pay/     Soroban smart contract (Rust)
 frontend/                React + TypeScript + Vite dApp
 scripts/                 One-command deployment script
 .github/workflows/       CI (contract + frontend)
+package.json             Root convenience scripts (npm run dev/test/build, etc.)
 ```
 
 ### Contract
@@ -70,15 +73,15 @@ Soroban, not something copied between the two.
 frontend/src/
   services/stellar/    RPC + contract client, Freighter wallet integration,
                         XLM/stroop conversion, contract error mapping
-  services/events/      (reserved for future push-based event polling;
-                         the live balance today recomputes client-side on
-                         a timer and reconciles against balance_of)
+  services/events/      real Soroban event fetching (rpc.Server.getEvents),
+                         decodes the (stream, created|withdrawn|canceled)
+                         topic pairs the contract publishes
   features/streams/     create-stream form, stream lookup, live-ticking
-                         balance display + withdraw/cancel actions,
-                         pure accrual math
+                         balance display + withdraw/cancel actions, an
+                         on-chain activity feed, pure accrual math
   features/wallet/      wallet connect/disconnect hook + UI
   components/ui/        shared primitives (Button, Card, StatusBadge,
-                         Spinner, ErrorBanner)
+                         Spinner, ErrorBanner, ErrorBoundary)
   App.tsx                thin composition root
 ```
 
@@ -88,9 +91,17 @@ contract's `accrued()` formula. `useLiveStream` fetches a stream once,
 then re-renders every second computing accrual **client-side** (no network
 call per tick), and reconciles against the real on-chain `balance_of`
 every 10 seconds so drift from another party withdrawing or canceling
-never lingers.
+never lingers. Alongside it, `ActivityLog` renders the real on-chain
+events for that stream (create/withdraw/cancel), each linking to its
+transaction — the concrete "event streaming" piece, not just a value the
+live balance was computed from.
 
 ## Setup
+
+Every frontend command below also works from the repo root (`npm run dev`,
+`npm test`, `npm run build`, `npm run lint`, `npm run typecheck`, plus
+`npm run test:contract` and `npm run test:all`) via the root
+[`package.json`](package.json).
 
 ### Contract
 
@@ -147,7 +158,7 @@ _[Mobile UI at ~390px — pending]_
 
 _[CI pipeline green checks — pending]_
 
-_[Test output, 28 passing frontend tests + 5 passing contract tests — pending]_
+_[Test output, 36 passing frontend tests + 9 passing contract tests — pending]_
 
 ## Requirements checklist
 
@@ -161,8 +172,9 @@ _[Test output, 28 passing frontend tests + 5 passing contract tests — pending]
 - [ ] Mobile responsive frontend (implemented with mobile breakpoints
       throughout; visual verification at ~390px pending)
 - [x] Error handling & loading states throughout (wallet, form
-      validation, contract calls)
-- [x] Tests: 5 contract unit tests (Rust/soroban-sdk testutils) + 28
+      validation, contract calls, plus a root ErrorBoundary for uncaught
+      render errors)
+- [x] Tests: 9 contract unit tests (Rust/soroban-sdk testutils) + 36
       frontend tests (Vitest/RTL) covering success and failure paths
 - [x] Production-ready architecture: services/features/components
       separation, thin `App.tsx`
