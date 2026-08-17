@@ -27,8 +27,8 @@ export function HowItWorks() {
             {depositXlm && (
               <>
                 {' '}
-                <strong>e.g. {depositXlm} XLM locked</strong> in the live
-                stream below, streaming for 30 days.
+                <strong>e.g. {depositXlm} XLM</strong>, in the live stream
+                below.
               </>
             )}
           </p>
@@ -68,16 +68,13 @@ export function HowItWorks() {
           <ScaleIcon className="step-icon" />
           <h3>4. Cancel anytime for a fair split</h3>
           <p>
-            Either the sender or recipient can cancel early. The contract
-            pays the recipient exactly what has accrued so far and refunds
-            the untouched remainder to the sender — both via real
-            inter-contract transfers, in the same transaction.{' '}
+            Either party can cancel early. The contract pays the recipient
+            exactly what accrued and refunds the rest to the sender, in the
+            same transaction.{' '}
             <a href={explorerTxUrl(CANCEL_TX_HASH)} target="_blank" rel="noreferrer">
               A real cancel ↗
             </a>{' '}
-            on a 20 XLM stream split <strong>2.0611111 XLM</strong> to the
-            recipient and refunded <strong>17.9388889 XLM</strong> to the
-            sender — exact to the stroop.
+            shows the exact split, verified on-chain.
           </p>
         </RevealItem>
       </RevealGroup>
