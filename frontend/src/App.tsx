@@ -1,44 +1,24 @@
-import { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { useWallet } from './features/wallet/useWallet';
-import { WalletConnect } from './features/wallet/WalletConnect';
-import { CreateStreamForm } from './features/streams/CreateStreamForm';
-import { StreamLookup } from './features/streams/StreamLookup';
-import { StreamView } from './features/streams/StreamView';
-import { Hero } from './features/home/Hero';
-import { HowItWorks } from './features/home/HowItWorks';
-import { FeatureHighlights } from './features/home/FeatureHighlights';
+import { Navbar } from './components/layout/Navbar';
+import { HomePage } from './pages/HomePage';
+import { HowItWorksPage } from './pages/HowItWorksPage';
+import { AppPage } from './pages/AppPage';
 import './App.css';
 
 function App() {
   const wallet = useWallet();
-  const [selectedStreamId, setSelectedStreamId] = useState<bigint | null>(null);
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <span className="app-wordmark">StreamPay</span>
-        <WalletConnect {...wallet} />
-      </header>
-
-      <Hero />
-      <HowItWorks />
-      <FeatureHighlights />
-
-      <section className="live-demo" id="live-demo">
-        <h2>Try it live</h2>
-        <p className="live-demo-sub">
-          Real testnet contract, real wallet, real transactions — connect
-          Freighter and create an actual stream.
-        </p>
-
-        <div className="live-demo-app">
-          <CreateStreamForm address={wallet.address} onCreated={setSelectedStreamId} />
-          <StreamLookup onSelect={setSelectedStreamId} />
-          {selectedStreamId !== null && (
-            <StreamView streamId={selectedStreamId} address={wallet.address} />
-          )}
-        </div>
-      </section>
+      <Navbar wallet={wallet} />
+      <div className="app-content">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/app" element={<AppPage wallet={wallet} />} />
+        </Routes>
+      </div>
     </div>
   );
 }
