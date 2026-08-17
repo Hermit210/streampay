@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  contract:
+    name: Contract (test + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contract
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+
+      - name: Cache cargo registry and build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contract
+
+      - name: Run tests
+        run: cargo test
+
+      - name: Build release wasm
+        run: cargo build --release --target wasm32v1-none -p stream_pay
+
+  frontend:
+    name: Frontend (lint + typecheck + test + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+        env:
+          VITE_CONTRACT_ID: CDPD3ZKG2CASLYS4GAZII6DLQG5R62QEE2JKJO7IWLKOWNDZA6J3WPVL
+          VITE_TOKEN_ID: CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+          VITE_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+          VITE_RPC_URL: https://soroban-testnet.stellar.org
+          VITE_HORIZON_URL: https://horizon-testnet.stellar.org
+          VITE_EXPLORER_BASE_URL: https://stellar.expert/explorer/testnet
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_CONTRACT_ID: CDPD3ZKG2CASLYS4GAZII6DLQG5R62QEE2JKJO7IWLKOWNDZA6J3WPVL
+          VITE_TOKEN_ID: CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+          VITE_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+          VITE_RPC_URL: https://soroban-testnet.stellar.org
+          VITE_HORIZON_URL: https://horizon-testnet.stellar.org
+          VITE_EXPLORER_BASE_URL: https://stellar.expert/explorer/testnet
