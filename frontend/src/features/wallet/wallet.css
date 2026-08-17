@@ -1,0 +1,31 @@
+.wallet-connect {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.wallet-connected {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.wallet-address {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.85rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+}
+
+@media (max-width: 480px) {
+  .wallet-connect {
+    align-items: stretch;
+    width: 100%;
+  }
+  .wallet-connected {
+    justify-content: space-between;
+  }
+}
