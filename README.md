@@ -201,23 +201,45 @@ frontend/src/
   services/events/      real Soroban event fetching (rpc.Server.getEvents),
                          decodes the (stream, created|withdrawn|canceled)
                          topic pairs the contract publishes
+  features/home/         hero, how-it-works, feature-highlight marketing
+                         sections -- illustrated with real, live testnet
+                         numbers, never placeholders
   features/streams/     create-stream form, stream lookup, live-ticking
                          balance display + withdraw/cancel actions, an
                          on-chain activity feed, pure accrual math
   features/wallet/      wallet connect/disconnect hook + UI
   components/ui/        shared primitives (Button, Card, StatusBadge,
-                         Spinner, ErrorBanner, ErrorBoundary)
+                         Spinner, ErrorBanner, ErrorBoundary, AnimatedNumber,
+                         TxFeedback, Reveal, icons)
   App.tsx                thin composition root
 ```
+
+**Animation stack**: [Motion](https://motion.dev) (formerly Framer Motion)
+drives the live-ticking number (`AnimatedNumber`), scroll-entrance reveals
+on the marketing sections (`Reveal`), hover/press states on cards, and
+enter/exit transitions on transaction feedback panels (`TxFeedback`, via
+`AnimatePresence`) -- all respecting `prefers-reduced-motion`.
+[AutoAnimate](https://auto-animate.formkit.com) handles the two lists that
+add/remove items (the activity feed, recent streams), one line each, no
+variant definitions needed. Aceternity UI, Magic UI, React Bits, and GSAP
+were evaluated and deliberately not installed: the first three are
+copy-paste component collections rather than packages, and where their
+patterns are useful (an animated number counter, a live proof stat) they
+are implemented directly with Motion primitives above; GSAP is built for
+scroll-triggered timeline sequencing that nothing on this page actually
+needs over Motion's own `whileInView`/`staggerChildren`.
 
 ```mermaid
 flowchart TD
     App["App.tsx\n(composition root)"] --> Wallet["features/wallet"]
     App --> Streams["features/streams"]
+    App --> Home["features/home"]
     Wallet --> UIKit["components/ui"]
     Streams --> UIKit
+    Home --> UIKit
     Wallet --> SvcStellar["services/stellar"]
     Streams --> SvcStellar
+    Home --> SvcStellar
     Streams --> SvcEvents["services/events"]
     SvcStellar --> Net["Soroban RPC + Freighter"]
     SvcEvents --> Net
@@ -282,9 +304,11 @@ exact `.env` line to point the frontend at it.
 | **create_stream tx** (10 XLM / 60s) | [`6eb7f266…`](https://stellar.expert/explorer/testnet/tx/6eb7f2668b4c7c7e7013ac7924db72d3ba92f093d377ca650ab22a4649f0fbb3) |
 | **withdraw tx** (5 XLM, partial) | [`c1401089…`](https://stellar.expert/explorer/testnet/tx/c1401089933bd652a65d6b8915f8db4c88928a99f0a6cfa9e2866e2b0b998a15) |
 | **withdraw tx — Horizon (independent verification)** | https://horizon-testnet.stellar.org/transactions/c1401089933bd652a65d6b8915f8db4c88928a99f0a6cfa9e2866e2b0b998a15 |
+| **cancel tx** (20 XLM stream, ~9.5% accrued) | [`3df09bef…`](https://stellar.expert/explorer/testnet/tx/3df09befea0d46744be77384a3c3a898af87ffec8f291340b3125407d3af0180) — 2.0611111 XLM to recipient, 17.9388889 XLM refunded to sender |
+| **Homepage live example** (stream #2, 100 XLM / 30 days) | [`b0078187…`](https://stellar.expert/explorer/testnet/tx/b00781879368ac0439ce9f7523245c49b8beb78288bb2da7b76c7a4807b9eba6) |
 
-Full end-to-end transcript (create → accrue → withdraw, with the exact
-numbers): [`contract/deployment/testnet.md`](contract/deployment/testnet.md).
+Full end-to-end transcript (create → accrue → withdraw → cancel, with the
+exact numbers): [`contract/deployment/testnet.md`](contract/deployment/testnet.md).
 
 **Live demo:** _[Vercel link — pending deploy]_
 
@@ -292,11 +316,17 @@ numbers): [`contract/deployment/testnet.md`](contract/deployment/testnet.md).
 
 ## Screenshots
 
-_[Mobile UI at ~390px — pending]_
+**Mobile UI at 390px** (real headless-browser capture, live testnet data, zero horizontal overflow):
 
-_[CI pipeline green checks — pending]_
+<img src="docs/screenshots/homepage-mobile-390px.png" alt="StreamPay mobile homepage at 390px" width="360" />
 
-_[Test output, 36 passing frontend tests + 9 passing contract tests — pending]_
+**Desktop homepage** (1280px):
+
+<img src="docs/screenshots/homepage-desktop.png" alt="StreamPay desktop homepage" width="720" />
+
+_[CI pipeline green checks — see [Actions](https://github.com/Hermit210/streampay/actions), also live via the badge at the top of this README]_
+
+_[Test output, 40 passing frontend tests + 9 passing contract tests — pending]_
 
 ## Requirements checklist
 
@@ -305,10 +335,10 @@ _[Test output, 36 passing frontend tests + 9 passing contract tests — pending]
 | Advanced smart contract | ✅ | Inter-contract calls to the XLM SAC (`create_stream`, `withdraw`, `cancel`), Soroban events on every mutation |
 | CI/CD pipeline | ✅ | Contract test/build + frontend lint/typecheck/test/build on every push to `main` — [green run](https://github.com/Hermit210/streampay/actions) |
 | Documented, scripted deployment | ✅ | `scripts/deploy-contract.sh`, one command |
-| Mobile responsive frontend | 🟡 | Implemented with mobile breakpoints + overflow hardening throughout; visual screenshot at ~390px pending |
+| Mobile responsive frontend | ✅ | Verified at 390px with a real headless-browser capture — see [Screenshots](#screenshots), zero horizontal overflow |
 | Error handling & loading states | ✅ | Wallet, form validation, contract calls, plus a root `ErrorBoundary` for uncaught render errors |
-| Tests | ✅ | 9 contract unit tests (Rust/soroban-sdk testutils) + 36 frontend tests (Vitest/RTL), success and failure paths |
+| Tests | ✅ | 9 contract unit tests (Rust/soroban-sdk testutils) + 40 frontend tests (Vitest/RTL), success and failure paths |
 | Production-ready architecture | ✅ | services/features/components separation, thin `App.tsx` |
 | Documentation + demo video | 🟡 | README done; video pending recording |
 | Live demo link (Vercel) | ⬜ | Pending deploy |
-| Transaction hash for a contract interaction | ✅ | See [Testnet deployment](#testnet-deployment); screenshot evidence pending |
+| Transaction hash for a contract interaction | ✅ | create_stream, withdraw, and cancel all have real confirmed transactions — see [Testnet deployment](#testnet-deployment) |
