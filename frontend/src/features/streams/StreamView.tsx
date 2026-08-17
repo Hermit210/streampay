@@ -9,6 +9,7 @@ import { stroopsToXlm, xlmToStroops } from '../../services/stellar/amount';
 import { describeError } from '../../services/stellar/errors';
 import { explorerTxUrl } from '../../services/stellar/config';
 import { useLiveStream } from './useLiveStream';
+import { ActivityLog } from './ActivityLog';
 import './streams.css';
 
 function shorten(address: string): string {
@@ -22,6 +23,7 @@ export function StreamView({ streamId, address }: { streamId: bigint; address: s
   const [actionHash, setActionHash] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
   const [canceling, setCanceling] = useState(false);
+  const [activityRefreshToken, setActivityRefreshToken] = useState(0);
 
   if (live.loading && !live.stream) {
     return (
@@ -77,6 +79,7 @@ export function StreamView({ streamId, address }: { streamId: bigint; address: s
       setActionHash(outcome.hash ?? null);
       setWithdrawAmount('');
       live.refetch();
+      setActivityRefreshToken((t) => t + 1);
     } catch (err) {
       setActionError(describeError(err));
     } finally {
@@ -93,6 +96,7 @@ export function StreamView({ streamId, address }: { streamId: bigint; address: s
       const outcome = await cancelStream({ address, streamId, caller: address });
       setActionHash(outcome.hash ?? null);
       live.refetch();
+      setActivityRefreshToken((t) => t + 1);
     } catch (err) {
       setActionError(describeError(err));
     } finally {
@@ -176,6 +180,11 @@ export function StreamView({ streamId, address }: { streamId: bigint; address: s
           </a>
         </div>
       )}
+
+      <div className="activity-section">
+        <span className="party-label">Recent activity</span>
+        <ActivityLog streamId={streamId} refreshToken={activityRefreshToken} />
+      </div>
     </Card>
   );
 }
