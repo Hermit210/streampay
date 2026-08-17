@@ -1,31 +1,56 @@
 .app-shell {
-  max-width: 780px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 4rem;
+  padding: 1.25rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding-bottom: 0.5rem;
+}
+
+.app-wordmark {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.live-demo {
+  padding: 2.5rem 0 2rem;
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+.live-demo h2 {
+  font-size: 1.4rem;
+  margin: 0 0 0.4rem;
+  text-align: center;
+}
+.live-demo-sub {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+  margin: 0 0 2rem;
+}
+
+.live-demo-app {
+  max-width: 640px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.app-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-}
-.app-header h1 {
-  font-size: 1.4rem;
-  margin: 0;
-}
-.tagline {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  margin: 0;
-}
-
 @media (max-width: 480px) {
   .app-shell {
     padding: 1rem 0.75rem 3rem;
+  }
+  .live-demo {
+    padding: 2rem 0 1.5rem;
   }
 }
