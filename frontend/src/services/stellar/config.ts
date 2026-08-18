@@ -1,21 +1,48 @@
 // Central place for network/contract configuration, sourced from Vite env
 // vars so testnet vs. future-mainnet values never get hardcoded in feature
 // code.
+//
+// Deliberately does NOT throw at module-load time. A synchronous throw here
+// would happen before React ever mounts (this module gets imported
+// transitively before main.tsx renders anything), so the app's own
+// ErrorBoundary can never catch it -- the result is a silent blank page
+// with nothing but a console error, which is exactly wrong for a missing
+// env var in production (e.g. a fresh Vercel deploy with unset variables).
+// Instead, missing keys are collected so main.tsx can render a clear,
+// visible startup error screen before attempting to mount the app.
 
-function requireEnv(key: string): string {
-  const value = import.meta.env[key];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
-  }
-  return value;
+const REQUIRED_ENV_KEYS = [
+  'VITE_CONTRACT_ID',
+  'VITE_TOKEN_ID',
+  'VITE_NETWORK_PASSPHRASE',
+  'VITE_RPC_URL',
+  'VITE_HORIZON_URL',
+  'VITE_EXPLORER_BASE_URL',
+] as const;
+
+function readEnv(key: (typeof REQUIRED_ENV_KEYS)[number]): string {
+  return import.meta.env[key] ?? '';
 }
 
-export const CONTRACT_ID = requireEnv('VITE_CONTRACT_ID');
-export const TOKEN_ID = requireEnv('VITE_TOKEN_ID');
-export const NETWORK_PASSPHRASE = requireEnv('VITE_NETWORK_PASSPHRASE');
-export const RPC_URL = requireEnv('VITE_RPC_URL');
-export const HORIZON_URL = requireEnv('VITE_HORIZON_URL');
-export const EXPLORER_BASE_URL = requireEnv('VITE_EXPLORER_BASE_URL');
+/** Pure and independently testable, unlike reading import.meta.env directly. */
+export function computeMissingEnvVars(
+  env: Record<string, string | undefined>,
+  keys: readonly string[],
+): string[] {
+  return keys.filter((key) => !env[key]);
+}
+
+export const MISSING_ENV_VARS: string[] = computeMissingEnvVars(
+  import.meta.env,
+  REQUIRED_ENV_KEYS,
+);
+
+export const CONTRACT_ID = readEnv('VITE_CONTRACT_ID');
+export const TOKEN_ID = readEnv('VITE_TOKEN_ID');
+export const NETWORK_PASSPHRASE = readEnv('VITE_NETWORK_PASSPHRASE');
+export const RPC_URL = readEnv('VITE_RPC_URL');
+export const HORIZON_URL = readEnv('VITE_HORIZON_URL');
+export const EXPLORER_BASE_URL = readEnv('VITE_EXPLORER_BASE_URL');
 
 export function explorerTxUrl(hash: string): string {
   return `${EXPLORER_BASE_URL}/tx/${hash}`;
