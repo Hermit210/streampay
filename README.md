@@ -8,6 +8,7 @@ Real-time streaming payments on Stellar Soroban — Orange Belt (Level 3) of
 ## Contents
 
 - [What this is](#what-this-is)
+- [Demo](#demo)
 - [How this compares to earlier belts](#how-this-compares-to-earlier-belts)
 - [Where this fits (use cases)](#where-this-fits-use-cases)
 - [System architecture](#system-architecture)
@@ -16,6 +17,8 @@ Real-time streaming payments on Stellar Soroban — Orange Belt (Level 3) of
 - [Contract](#contract)
 - [Frontend](#frontend)
 - [Setup](#setup)
+- [CI/CD pipeline](#cicd-pipeline)
+- [Test output](#test-output)
 - [Testnet deployment](#testnet-deployment)
 - [Screenshots](#screenshots)
 - [Requirements checklist](#requirements-checklist)
@@ -47,6 +50,22 @@ computed identically on-chain and in the UI, growing every single second
 rather than jumping in discrete steps. That's why cancellation is trivial
 here (split by elapsed time, no dispute possible) where it would require
 a judgment call in an escrow/approval model.
+
+## Demo
+
+| Resource | Link |
+|---|---|
+| **Live app** | https://streampay-mu.vercel.app/ |
+| **Create-stream tx** (Stream #0, 10 XLM / 60s) | [`6eb7f266…`](https://stellar.expert/explorer/testnet/tx/6eb7f2668b4c7c7e7013ac7924db72d3ba92f093d377ca650ab22a4649f0fbb3) |
+| **Withdraw tx** (Stream #0, 5 XLM) | [`c1401089…`](https://stellar.expert/explorer/testnet/tx/c1401089933bd652a65d6b8915f8db4c88928a99f0a6cfa9e2866e2b0b998a15) |
+| **Cancel tx** (Stream #4, 20 XLM, split exactly at ~9.5% accrued) | [`3df09bef…`](https://stellar.expert/explorer/testnet/tx/3df09befea0d46744be77384a3c3a898af87ffec8f291340b3125407d3af0180) |
+| **Contract** | [`CDPD3ZKG…`](https://stellar.expert/explorer/testnet/contract/CDPD3ZKG2CASLYS4GAZII6DLQG5R62QEE2JKJO7IWLKOWNDZA6J3WPVL) |
+| **Demo video** | https://drive.google.com/drive/folders/1JRUN0sEFhOgkP0gsB7Lz04rHJqllNYVv?usp=sharing |
+
+All four transactions are real, confirmed testnet transactions from the
+end-to-end runs documented in
+[`contract/deployment/testnet.md`](contract/deployment/testnet.md) — none
+are illustrative or hypothetical.
 
 ## How this compares to earlier belts
 
@@ -339,6 +358,72 @@ Runs `cargo test`, builds the optimized wasm, funds the deployer identity
 via Friendbot if needed, deploys, and prints the contract ID plus the
 exact `.env` line to point the frontend at it.
 
+## CI/CD pipeline
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push
+and every pull request to `main`, as two independent jobs:
+
+- **Contract** (`contract/`): installs Rust with the `wasm32v1-none`
+  target (the actual target this project deploys with, not the more
+  common `wasm32-unknown-unknown`), caches the cargo registry and build
+  artifacts via `Swatinem/rust-cache`, runs `cargo test`, then
+  `cargo build --release --target wasm32v1-none -p stream_pay`.
+- **Frontend** (`frontend/`): installs Node 22, runs `npm ci`, then in
+  order `npm run lint` (oxlint), `npm run typecheck` (`tsc -b`),
+  `npm test` (vitest), and `npm run build` (vite) — the same six required
+  `VITE_*` env vars from [Setup](#setup) are injected for the test and
+  build steps, since the contract client reads them at import time.
+
+Real passing run (both jobs green, triggered by the commit that added the
+live demo link and screenshots):
+https://github.com/Hermit210/streampay/actions/runs/32134699175
+
+<img src="docs/screenshots/ci-green.png" alt="StreamPay CI run, both jobs green, run #10" width="720" />
+
+## Test output
+
+```bash
+cd contract && cargo test
+cd frontend && npm run test
+```
+
+Actual output from running both suites just now, pasted verbatim (not
+hand-written or hypothetical):
+
+```
+$ cd contract && cargo test
+running 9 tests
+test test::zero_duration_is_rejected ... ok
+test test::stranger_cannot_cancel ... ok
+test test::cancel_splits_accrued_and_refund_correctly ... ok
+test test::withdraw_full_deposit_after_stream_completes ... ok
+test test::recipient_can_also_cancel ... ok
+test test::create_stream_pulls_deposit_into_contract ... ok
+test test::withdraw_pays_only_accrued_amount ... ok
+test test::non_recipient_cannot_withdraw ... ok
+test test::get_recent_streams_orders_most_recent_first ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+$ cd frontend && npm run test
+ ✓ src/services/stellar/errors.test.ts (5 tests) 8ms
+ ✓ src/features/streams/accrual.test.ts (11 tests) 10ms
+ ✓ src/services/stellar/amount.test.ts (4 tests) 10ms
+ ✓ src/services/stellar/config.test.ts (8 tests) 9ms
+ ✓ src/services/stellar/freighter.test.ts (3 tests) 12ms
+ ✓ src/features/wallet/useWallet.test.ts (5 tests) 144ms
+ ✓ src/features/streams/validation.test.ts (8 tests) 10ms
+ ✓ src/components/ui/AnimatedNumber.test.tsx (4 tests) 87ms
+ ✓ src/features/streams/StreamView.test.tsx (3 tests) 438ms
+ ✓ src/features/streams/CreateStreamForm.test.tsx (3 tests) 565ms
+
+ Test Files  10 passed (10)
+      Tests  54 passed (54)
+   Duration  13.34s
+```
+
+<img src="docs/screenshots/test-output.png" alt="9 contract tests and 54 frontend tests passing" width="640" />
+
 ## Testnet deployment
 
 | | |
@@ -355,9 +440,7 @@ exact `.env` line to point the frontend at it.
 Full end-to-end transcript (create → accrue → withdraw → cancel, with the
 exact numbers): [`contract/deployment/testnet.md`](contract/deployment/testnet.md).
 
-**Live demo:** https://streampay-mu.vercel.app/
-
-**Demo video:** https://drive.google.com/drive/folders/1JRUN0sEFhOgkP0gsB7Lz04rHJqllNYVv?usp=sharing
+See [Demo](#demo) above for the live app and demo video links.
 
 ## Screenshots
 
@@ -386,15 +469,8 @@ testnet data, real routing) — none are mockups.
 
 <img src="docs/screenshots/app-desktop-live-stream.png" alt="StreamPay app page with a live loaded stream" width="720" />
 
-### CI pipeline, both jobs green
-
-Live at [Actions](https://github.com/Hermit210/streampay/actions), also via the badge at the top of this README:
-
-<img src="docs/screenshots/ci-green.png" alt="StreamPay CI run, both jobs green" width="720" />
-
-### Test output (9 contract tests + 47 frontend tests, all real captured output)
-
-<img src="docs/screenshots/test-output.png" alt="9 contract tests and 47 frontend tests passing" width="640" />
+CI pipeline and test output screenshots moved to their own sections —
+see [CI/CD pipeline](#cicd-pipeline) and [Test output](#test-output).
 
 ## Requirements checklist
 
@@ -410,9 +486,9 @@ assumed from earlier work.
 | Mobile responsive frontend | ✅ | All three routes (`/`, `/how-it-works`, `/app`) verified at 390px with real headless-browser captures, zero horizontal overflow — see [Screenshots](#screenshots) |
 | Error handling & loading states | ✅ | Every RPC/contract call (wallet connect, create, withdraw, cancel, stream load, event poll) has a loading state and a mapped, human-readable error message; a root `ErrorBoundary` for uncaught render errors; and a pre-mount startup check that shows a clear on-screen error naming exactly which env vars are missing, instead of a blank page, if the deployment is misconfigured |
 | Contract tests | ✅ | 9 unit tests (Rust/soroban-sdk testutils): create, partial/full withdraw, double-withdraw rejection, cancel by sender and by recipient, stranger-cannot-cancel, non-recipient-cannot-withdraw, zero-duration rejection, recent-streams ordering |
-| Frontend tests | ✅ | 47 tests (Vitest/RTL): accrual math (11, including before/mid/exactly-at-stop/after-stop/canceled), wallet connect errors (5), form validation (8), withdraw guard logic (3), animated number (4), error mapping (5), amount conversion (4), component-level create-stream flow (3), startup env-var check (4) |
+| Frontend tests | ✅ | 54 tests across 10 files (Vitest/RTL): accrual math (11, including before/mid/exactly-at-stop/after-stop/canceled), wallet connect errors (5), form validation (8), withdraw guard logic (3), animated number (4), error mapping (5), amount conversion (4), component-level create-stream flow (3), startup env-var check (8), Freighter network-passphrase whitespace regression (3) |
 | Production-ready architecture | ✅ | `services/` (RPC, wallet, events) / `features/` (streams, wallet, home) / `components/ui/` (shared primitives) / `pages/` separation, thin composition roots — not one giant `App.tsx` |
 | Documentation | ✅ | This README: architecture, setup, testing, deployment record, honest checklist |
-| Demo video | 🟡 | Pending recording |
-| Live demo link (Vercel) | ⬜ | Pending deploy |
-| Transaction hash for a contract interaction | ✅ | create_stream, withdraw, and cancel all have real confirmed testnet transactions — see [Testnet deployment](#testnet-deployment) |
+| Demo video | ✅ | See [Demo](#demo) |
+| Live demo link (Vercel) | ✅ | https://streampay-mu.vercel.app/ — live, see [Demo](#demo) |
+| Transaction hash for a contract interaction | ✅ | create_stream, withdraw, and cancel all have real confirmed testnet transactions — see [Demo](#demo) and [Testnet deployment](#testnet-deployment) |
