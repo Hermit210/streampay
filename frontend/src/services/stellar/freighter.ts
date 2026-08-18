@@ -47,7 +47,11 @@ export async function getConnectedAddress(): Promise<string | null> {
 
 export async function assertCorrectNetwork(): Promise<void> {
   const network = await unwrap(freighter.getNetworkDetails(), 'Could not read wallet network');
-  if (network.networkPassphrase !== NETWORK_PASSPHRASE) {
+  // Trim both sides: NETWORK_PASSPHRASE is already trimmed at the source
+  // (services/stellar/config.ts), but trimming again here is cheap and
+  // means this comparison is correct even if that ever changes, and
+  // guards against any stray whitespace on Freighter's reported value too.
+  if (network.networkPassphrase.trim() !== NETWORK_PASSPHRASE.trim()) {
     throw new WalletError(
       `Wrong network selected in Freighter. Switch to the network matching "${NETWORK_PASSPHRASE}".`,
     );

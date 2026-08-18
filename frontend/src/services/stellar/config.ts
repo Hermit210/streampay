@@ -20,8 +20,30 @@ const REQUIRED_ENV_KEYS = [
   'VITE_EXPLORER_BASE_URL',
 ] as const;
 
+/** Pure and independently testable. Vercel's (and other hosts') env var
+ * UIs will happily store a stray leading/trailing space if one gets
+ * pasted in -- this has bitten this project once already
+ * (VITE_NETWORK_PASSPHRASE had a leading space, which broke a strict
+ * `!==` comparison against Freighter's reported network in a way that
+ * was hard to see just by looking at the value). Trimming at the single
+ * point every env var is read fixes it for every consumer at once. */
+export function normalizeEnvValue(raw: string | undefined): string {
+  return (raw ?? '').trim();
+}
+
 function readEnv(key: (typeof REQUIRED_ENV_KEYS)[number]): string {
-  return import.meta.env[key] ?? '';
+  const raw = import.meta.env[key];
+  const trimmed = normalizeEnvValue(raw);
+  // Warning here means a future stray-whitespace env var surfaces
+  // immediately in the console instead of as a confusing downstream
+  // mismatch (e.g. a wallet "wrong network" error that looks correct at
+  // a glance).
+  if ((raw ?? '') !== trimmed) {
+    console.warn(
+      `[config] ${key} had leading/trailing whitespace in its environment value; trimmed automatically.`,
+    );
+  }
+  return trimmed;
 }
 
 /** Pure and independently testable, unlike reading import.meta.env directly. */
