@@ -355,9 +355,9 @@ exact `.env` line to point the frontend at it.
 Full end-to-end transcript (create → accrue → withdraw → cancel, with the
 exact numbers): [`contract/deployment/testnet.md`](contract/deployment/testnet.md).
 
-**Live demo:** _[Vercel link — pending deploy]_
+**Live demo:** https://streampay-mu.vercel.app/
 
-**Demo video:** _[link — pending recording]_
+**Demo video:** https://drive.google.com/drive/folders/1JRUN0sEFhOgkP0gsB7Lz04rHJqllNYVv?usp=sharing
 
 ## Screenshots
 
@@ -366,9 +366,11 @@ testnet data, real routing) — none are mockups.
 
 ### Mobile, 390px (all three routes, zero horizontal overflow)
 
-<img src="docs/screenshots/homepage-mobile-390px.png" alt="StreamPay home page, mobile 390px" width="300" />
-<img src="docs/screenshots/how-it-works-mobile-390px.png" alt="How it works page, mobile 390px" width="300" />
-<img src="docs/screenshots/app-mobile-390px.png" alt="App page, mobile 390px" width="300" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/aee51ebf-7755-4685-9568-a82ba672dfb1" />
+
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/420cec55-7a2a-4e2a-9b85-33a2386df9e4" />
+<img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/62365310-2278-4797-b31e-5f2dfae1a362" />
+
 
 ### Desktop
 
