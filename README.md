@@ -298,6 +298,37 @@ npm test                 # vitest run
 npm run build             # tsc -b && vite build
 ```
 
+#### Required environment variables
+
+`frontend/.env.example` lists every variable the app reads (there are no
+others — `services/stellar/config.ts` is the single place they're
+consumed). All six are required; the app will refuse to render past a
+clear on-screen error if any are missing (see below) rather than silently
+failing.
+
+| Variable | Testnet value |
+|---|---|
+| `VITE_CONTRACT_ID` | `CDPD3ZKG2CASLYS4GAZII6DLQG5R62QEE2JKJO7IWLKOWNDZA6J3WPVL` |
+| `VITE_TOKEN_ID` | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` |
+| `VITE_NETWORK_PASSPHRASE` | `Test SDF Network ; September 2015` (paste exactly, including the spaces and semicolon) |
+| `VITE_RPC_URL` | `https://soroban-testnet.stellar.org` |
+| `VITE_HORIZON_URL` | `https://horizon-testnet.stellar.org` |
+| `VITE_EXPLORER_BASE_URL` | `https://stellar.expert/explorer/testnet` |
+
+For a Vercel deployment, add all six under Project Settings → Environment
+Variables (Vite only exposes vars prefixed `VITE_` to the client, and only
+those set *before* the build runs — adding them after a failed deploy
+requires triggering a new deployment, not just saving the settings).
+
+**Missing-config error screen.** If any of these aren't set, the app
+does not silently render a blank page — `main.tsx` checks for missing
+vars before mounting the router/app tree at all, and renders a plain,
+self-contained error screen (no CSS/font dependency, so it renders even
+if the rest of the build is unhealthy) naming exactly which variables are
+missing:
+
+<img src="docs/screenshots/startup-error.png" alt="StreamPay startup error screen listing missing environment variables" width="640" />
+
 ### Deploy the contract (one command)
 
 ```bash
@@ -359,9 +390,9 @@ Live at [Actions](https://github.com/Hermit210/streampay/actions), also via the 
 
 <img src="docs/screenshots/ci-green.png" alt="StreamPay CI run, both jobs green" width="720" />
 
-### Test output (9 contract tests + 43 frontend tests, all real captured output)
+### Test output (9 contract tests + 47 frontend tests, all real captured output)
 
-<img src="docs/screenshots/test-output.png" alt="9 contract tests and 43 frontend tests passing" width="640" />
+<img src="docs/screenshots/test-output.png" alt="9 contract tests and 47 frontend tests passing" width="640" />
 
 ## Requirements checklist
 
@@ -375,9 +406,9 @@ assumed from earlier work.
 | CI/CD pipeline | ✅ | `.github/workflows/ci.yml`: contract test+build, frontend lint/typecheck/test/build, on every push to `main` — [green run](https://github.com/Hermit210/streampay/actions) |
 | Documented, scripted deployment workflow | ✅ | `scripts/deploy-contract.sh testnet deployer` — one command, documented in [Setup](#setup) |
 | Mobile responsive frontend | ✅ | All three routes (`/`, `/how-it-works`, `/app`) verified at 390px with real headless-browser captures, zero horizontal overflow — see [Screenshots](#screenshots) |
-| Error handling & loading states | ✅ | Every RPC/contract call (wallet connect, create, withdraw, cancel, stream load, event poll) has a loading state and a mapped, human-readable error message, plus a root `ErrorBoundary` for uncaught render errors |
+| Error handling & loading states | ✅ | Every RPC/contract call (wallet connect, create, withdraw, cancel, stream load, event poll) has a loading state and a mapped, human-readable error message; a root `ErrorBoundary` for uncaught render errors; and a pre-mount startup check that shows a clear on-screen error naming exactly which env vars are missing, instead of a blank page, if the deployment is misconfigured |
 | Contract tests | ✅ | 9 unit tests (Rust/soroban-sdk testutils): create, partial/full withdraw, double-withdraw rejection, cancel by sender and by recipient, stranger-cannot-cancel, non-recipient-cannot-withdraw, zero-duration rejection, recent-streams ordering |
-| Frontend tests | ✅ | 43 tests (Vitest/RTL): accrual math (11, including before/mid/exactly-at-stop/after-stop/canceled), wallet connect errors (5), form validation (8), withdraw guard logic (3), animated number (4), error mapping (5), amount conversion (4), component-level create-stream flow (3) |
+| Frontend tests | ✅ | 47 tests (Vitest/RTL): accrual math (11, including before/mid/exactly-at-stop/after-stop/canceled), wallet connect errors (5), form validation (8), withdraw guard logic (3), animated number (4), error mapping (5), amount conversion (4), component-level create-stream flow (3), startup env-var check (4) |
 | Production-ready architecture | ✅ | `services/` (RPC, wallet, events) / `features/` (streams, wallet, home) / `components/ui/` (shared primitives) / `pages/` separation, thin composition roots — not one giant `App.tsx` |
 | Documentation | ✅ | This README: architecture, setup, testing, deployment record, honest checklist |
 | Demo video | 🟡 | Pending recording |
