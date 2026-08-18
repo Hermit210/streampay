@@ -5,6 +5,10 @@
 Real-time streaming payments on Stellar Soroban — Orange Belt (Level 3) of
 [Stellar Journey to Mastery](https://www.risein.com/programs/stellar-journey-to-mastery-monthly-builder-challenges).
 
+
+## demo video link : https://drive.google.com/drive/folders/1JRUN0sEFhOgkP0gsB7Lz04rHJqllNYVv?usp=sharing
+
+
 ## Contents
 
 - [What this is](#what-this-is)
@@ -378,7 +382,8 @@ Real passing run (both jobs green, triggered by the commit that added the
 live demo link and screenshots):
 https://github.com/Hermit210/streampay/actions/runs/32134699175
 
-<img src="docs/screenshots/ci-green.png" alt="StreamPay CI run, both jobs green, run #10" width="720" />
+<img width="1600" height="864" alt="WhatsApp Image 2026-08-18 at 5 51 40 PM" src="https://github.com/user-attachments/assets/1742f0f4-d9d8-4d85-92ba-a0082d58dde0" />
+
 
 ## Test output
 
